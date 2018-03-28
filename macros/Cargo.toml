@@ -1,0 +1,19 @@
+[package]
+name = "riscv-rtfm-macros"
+version = "0.3.0"
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+categories = ["concurrency", "embedded", "no-std"]
+description = "Procedural macros of the riscv-rtfm crate"
+documentation = "https://docs.rs/riscv-rtfm-macros"
+keywords = ["riscv"]
+repository = "https://github.com/riscv-rust/riscv-rtfm"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+error-chain = "0.10.0"
+quote = "0.3.15"
+rtfm-syntax = "0.2.1"
+syn = "0.11.11"
+
+[lib]
+proc-macro = true
