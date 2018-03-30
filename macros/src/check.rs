@@ -161,10 +161,15 @@ fn task(name: &str, task: syntax::check::Task) -> Result<Task> {
         }
     };
 
+    let priority = task.priority.unwrap_or(1);
+    if priority > 7 {
+        bail!("task priority can't be larger than 7.")
+    }
+
     Ok(Task {
         kind,
         path: task.path.ok_or("`path` field is missing")?,
-        priority: task.priority.unwrap_or(1),
+        priority: priority,
         resources: task.resources,
     })
 }
