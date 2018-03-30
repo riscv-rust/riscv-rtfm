@@ -18,26 +18,20 @@ pub type Tasks = HashMap<Ident, Task>;
 
 #[allow(non_camel_case_types)]
 pub enum Exception {
-    PENDSV,
-    SVCALL,
-    SYS_TICK,
+    MachineTimer,
 }
 
 impl Exception {
     pub fn from(s: &str) -> Option<Self> {
         Some(match s {
-            "PENDSV" => Exception::PENDSV,
-            "SVCALL" => Exception::SVCALL,
-            "SYS_TICK" => Exception::SYS_TICK,
+            "MTIMER" => Exception::MachineTimer,
             _ => return None,
         })
     }
 
     pub fn nr(&self) -> usize {
         match *self {
-            Exception::PENDSV => 14,
-            Exception::SVCALL => 11,
-            Exception::SYS_TICK => 15,
+            Exception::MachineTimer => 0b111 + (1 << 31),
         }
     }
 }
