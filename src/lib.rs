@@ -78,24 +78,43 @@
 #![no_std]
 
 extern crate riscv;
-extern crate rtfm_core;
-extern crate static_ref;
 extern crate riscv_rtfm_macros;
+extern crate rtfm_core;
+extern crate untagged_option;
 
-pub use rtfm_core::{Resource, Threshold};
 pub use riscv::asm::wfi;
 pub use riscv_rtfm_macros::app;
-use riscv::interrupt;
+pub use rtfm_core::{Resource, Threshold};
+pub use untagged_option::UntaggedOption;
+
+use core::u8;
+use riscv::interrupt::{self, Nr};
 
 /// Executes the closure `f` in a preemption free context
 ///
 /// During the execution of the closure no task can preempt the current task.
-pub fn atomic<R, F>(_: &mut Threshold, f: F) -> R
+pub fn atomic<R, F>(t: &mut Threshold, f: F) -> R
 where
     F: FnOnce(&mut Threshold) -> R,
 {
-    unsafe { interrupt::disable() };
-    let r = f(&mut unsafe { Threshold::max() });
-    unsafe { interrupt::enable() };
-    r
+    if t.value() == u8::MAX {
+        f(t)
+    } else {
+        unsafe { interrupt::disable() };
+        let r = f(&mut unsafe { Threshold::max() });
+        unsafe { interrupt::enable() };
+        r
+    }
+}
+
+/// Sets an interrupt, that is a task, as pending
+///
+/// If the task priority is high enough the task will be serviced immediately,
+/// otherwise it will be serviced at some point after the current task ends.
+pub fn set_pending<I>(_interrupt: I)
+where
+    I: Nr,
+{
+    // Unimplemented
+    riscv::asm::ebreak();
 }

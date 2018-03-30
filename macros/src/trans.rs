@@ -126,7 +126,6 @@ fn idle(app: &App, ownerships: &Ownerships, main: &mut Vec<Tokens>, root: &mut V
         exprs.push(quote!(unsafe { idle::Resources::new() }));
     }
 
-    let device = &app.device;
     for name in &app.idle.resources {
         let ceiling = ownerships[name].ceiling();
 
@@ -176,30 +175,14 @@ fn idle(app: &App, ownerships: &Ownerships, main: &mut Vec<Tokens>, root: &mut V
                 where
                     F: FnOnce(&Self::Data, &mut Threshold) -> R
                 {
-                    unsafe {
-                        #krate::claim(
-                            &#_static,
-                            #ceiling,
-                            #device::NVIC_PRIO_BITS,
-                            t,
-                            f,
-                        )
-                    }
+                    unsafe { #krate::atomic(t, |t| f(&#_static, t)) }
                 }
 
                 fn claim_mut<R, F>(&mut self, t: &mut Threshold, f: F) -> R
                 where
                     F: FnOnce(&mut Self::Data, &mut Threshold) -> R
                 {
-                    unsafe {
-                        #krate::claim(
-                            &mut #_static,
-                            #ceiling,
-                            #device::NVIC_PRIO_BITS,
-                            t,
-                            f,
-                        )
-                    }
+                    unsafe { #krate::atomic(t, |t| f(&mut #_static, t)) }
                 }
             }
         });
@@ -349,42 +332,31 @@ fn init(app: &App, main: &mut Vec<Tokens>, root: &mut Vec<Tokens>) {
     for (name, task) in &app.tasks {
         match task.kind {
             Kind::Exception(ref e) => {
-                if exceptions.is_empty() {
-                    exceptions.push(quote! {
-                        let scb = &*#device::SCB::ptr();
-                    });
-                }
-
-                let nr = e.nr();
-                let priority = task.priority;
+                let _nr = e.nr();
                 exceptions.push(quote! {
-                    let prio_bits = #device::NVIC_PRIO_BITS;
-                    let hw = ((1 << prio_bits) - #priority) << (8 - prio_bits);
-                    scb.shpr[#nr - 4].write(hw);
                 });
             }
             Kind::Interrupt { enabled } => {
-                // Interrupt. These are enabled / disabled through the NVIC
+                // Interrupt. These are enabled / disabled through the PLIC
                 if interrupts.is_empty() {
                     interrupts.push(quote! {
-                        let mut nvic: #device::NVIC = core::mem::transmute(());
+                        let _plic: #device::PLIC = core::mem::transmute(());
+                        let mut plic = _plic.split();
                     });
                 }
 
                 let priority = task.priority;
                 interrupts.push(quote! {
-                    let prio_bits = #device::NVIC_PRIO_BITS;
-                    let hw = ((1 << prio_bits) - #priority) << (8 - prio_bits);
-                    nvic.set_priority(#device::Interrupt::#name, hw);
+                    plic.#name.set_priority(core::mem::transmute(#priority));
                 });
 
                 if enabled {
                     interrupts.push(quote! {
-                        nvic.enable(#device::Interrupt::#name);
+                        plic.#name.enable();
                     });
                 } else {
                     interrupts.push(quote! {
-                        nvic.disable(#device::Interrupt::#name);
+                        plic.#name.disable();
                     });
                 }
             }
@@ -400,7 +372,7 @@ fn init(app: &App, main: &mut Vec<Tokens>, root: &mut Vec<Tokens>) {
             let _late_resources = init(#(#exprs,)*);
             #(#late_resource_init)*
 
-            #(#exceptions)*
+            //#(#exceptions)*
             #(#interrupts)*
         });
     });
@@ -434,7 +406,6 @@ fn resources(app: &App, ownerships: &Ownerships, root: &mut Vec<Tokens>) {
 }
 
 fn tasks(app: &App, ownerships: &Ownerships, root: &mut Vec<Tokens>) {
-    let device = &app.device;
     let krate = krate();
 
     for (tname, task) in &app.tasks {
@@ -488,30 +459,14 @@ fn tasks(app: &App, ownerships: &Ownerships, root: &mut Vec<Tokens>) {
                         where
                             F: FnOnce(&Self::Data, &mut Threshold) -> R
                         {
-                            unsafe {
-                                #krate::claim(
-                                    &#_static,
-                                    #ceiling,
-                                    #device::NVIC_PRIO_BITS,
-                                    t,
-                                    f,
-                                )
-                            }
+                            unsafe { #krate::atomic(t, |t| f(&#_static, t)) }
                         }
 
                         fn claim_mut<R, F>(&mut self, t: &mut Threshold, f: F) -> R
                         where
                             F: FnOnce(&mut Self::Data, &mut Threshold) -> R
                         {
-                            unsafe {
-                                #krate::claim(
-                                    &mut #_static,
-                                    #ceiling,
-                                    #device::NVIC_PRIO_BITS,
-                                    t,
-                                    f,
-                                )
-                            }
+                            unsafe { #krate::atomic(t, |t| f(&mut #_static, t)) }
                         }
                     }
                 });
@@ -571,10 +526,10 @@ fn tasks(app: &App, ownerships: &Ownerships, root: &mut Vec<Tokens>) {
         if has_resources {
             tys.push(quote!(&mut #krate::Threshold));
             exprs.push(quote! {
-                &mut if #priority == 1 << #device::NVIC_PRIO_BITS {
+                &mut if #priority > 1 {
                     #krate::Threshold::new(::core::u8::MAX)
                 } else {
-                    #krate::Threshold::new(#priority)
+                    #krate::Threshold::new(0)
                 }
             });
         }
@@ -607,8 +562,8 @@ fn tasks(app: &App, ownerships: &Ownerships, root: &mut Vec<Tokens>) {
                 #[allow(dead_code)]
                 #[deny(const_err)]
                 const CHECK_PRIORITY: (u8, u8) = (
-                    #priority - 1,
-                    (1 << ::#device::NVIC_PRIO_BITS) - #priority,
+                    1 - #priority,
+                    #priority,
                 );
 
                 #(#items)*
