@@ -230,10 +230,7 @@ fn init(app: &App, main: &mut Vec<Tokens>, root: &mut Vec<Tokens>) {
     let mut tys = vec![quote!(init::Peripherals)];
     let mut exprs = vec![
         quote!{
-            init::Peripherals {
-                core: ::#device::CorePeripherals::steal(),
-                device: ::#device::Peripherals::steal(),
-            }
+            ::#device::Peripherals::steal()
         },
     ];
     let mut ret = None;
@@ -341,10 +338,7 @@ fn init(app: &App, main: &mut Vec<Tokens>, root: &mut Vec<Tokens>) {
     root.push(quote! {
         #[allow(unsafe_code)]
         mod init {
-            pub struct Peripherals {
-                pub core: ::#device::CorePeripherals,
-                pub device: ::#device::Peripherals,
-            }
+            pub type Peripherals = ::#device::Peripherals;
 
             #(#mod_items)*
         }
