@@ -88,7 +88,7 @@ pub use rtfm_core::{Resource, Threshold};
 pub use untagged_option::UntaggedOption;
 
 use core::u8;
-use riscv::interrupt::{self, Nr};
+use riscv::interrupt;
 
 /// Executes the closure `f` in a preemption free context
 ///
@@ -105,16 +105,4 @@ where
         unsafe { interrupt::enable() };
         r
     }
-}
-
-/// Sets an interrupt, that is a task, as pending
-///
-/// If the task priority is high enough the task will be serviced immediately,
-/// otherwise it will be serviced at some point after the current task ends.
-pub fn set_pending<I>(_interrupt: I)
-where
-    I: Nr,
-{
-    // Unimplemented
-    riscv::asm::ebreak();
 }
