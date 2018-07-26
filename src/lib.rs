@@ -74,16 +74,13 @@
 //! [rtfm]: http://www.diva-portal.org/smash/get/diva2:1005680/FULLTEXT01.pdf
 #![deny(missing_docs)]
 #![deny(warnings)]
-#![feature(proc_macro)]
 #![no_std]
 
 extern crate riscv;
-extern crate riscv_rtfm_macros;
 extern crate rtfm_core;
 extern crate untagged_option;
 
 pub use riscv::asm::wfi;
-pub use riscv_rtfm_macros::app;
 pub use rtfm_core::{Resource, Threshold};
 pub use untagged_option::UntaggedOption;
 
