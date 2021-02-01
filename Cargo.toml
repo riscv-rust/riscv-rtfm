@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["David Craven <david@craven.ch>"]
 
 [dependencies]
-riscv = { path = "../riscv" }
+riscv = "0.6"
 riscv-rtfm-macros = { path = "macros" }
-rtfm-core = "0.2.0"
-untagged-option = "0.1.1"
+rtfm-core = "0.2"
+untagged-option = "0.2"
