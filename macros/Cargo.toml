@@ -10,10 +10,10 @@ repository = "https://github.com/riscv-rust/riscv-rtfm"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-error-chain = "0.10.0"
-quote = "0.3.15"
-rtfm-syntax = "0.2.1"
-syn = "0.11.11"
+error-chain = "0.10"
+quote = "0.3"
+rtfm-syntax = "0.2"
+syn = "0.11"
 
 [lib]
 proc-macro = true
